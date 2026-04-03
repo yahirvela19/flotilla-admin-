@@ -12,7 +12,7 @@ export default function Sidebar() {
         </div>
 
         {/* NAV */}
-        <nav className="px-3 space-y-1">
+        <nav className="px-3 space-y-1 ">
 
           <NavItem to="/choferes" icon={<Users size={18} />} label="Choferes" />
           <NavItem to="/vehiculos" icon={<Car size={18} />} label="Vehículos" />
