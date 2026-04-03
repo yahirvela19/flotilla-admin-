@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { supabase } from "../lib/supabase"; 
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Badge from "../components/ui/Badge";
 
 export default function Choferes() {
   // Extraemos el término de búsqueda de la barra superior (Layout)
@@ -139,131 +143,154 @@ export default function Choferes() {
            chofer.estatus.toLowerCase().includes(terminoBusqueda);
   });
 
-  return (
-    <>
-      {/* SECCIÓN CENTRAL: LISTA DE CHOFERES */}
-      <main className="flex-1 p-8 overflow-y-auto bg-gray-50">
-        <h2 className="text-xl font-bold mb-6 uppercase">Directorio de Choferes</h2>
-        
-        <div className="overflow-x-auto bg-white border border-black">
-          <table className="w-full text-left border-collapse">
+return (
+  <div className="flex gap-6 h-full">
+
+    {/* TABLA */}
+    <main className="flex-1">
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+        Directorio de Choferes
+      </h2>
+
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            
             <thead>
-              <tr className="bg-gray-200 border-b border-black">
-                <th className="p-3 border-r border-black">ID</th>
-                <th className="p-3 border-r border-black">Nombre Completo</th>
-                <th className="p-3 border-r border-black">Teléfono</th>
-                <th className="p-3 border-r border-black">Licencia</th>
-                <th className="p-3 border-r border-black">Estatus</th>
+              <tr className="border-b border-gray-200 text-gray-600">
+                <th className="p-3">ID</th>
+                <th className="p-3">Nombre Completo</th>
+                <th className="p-3">Teléfono</th>
+                <th className="p-3">Licencia</th>
+                <th className="p-3">Estatus</th>
                 <th className="p-3">Acciones</th>
               </tr>
             </thead>
+
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="p-6 text-center text-black uppercase font-bold animate-pulse">
+                  <td colSpan="6" className="p-6 text-center text-gray-500 animate-pulse">
                     Cargando datos...
                   </td>
                 </tr>
               ) : choferesFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-6 text-center text-gray-500 uppercase">
-                    {searchTerm ? 'No se encontraron resultados' : 'No hay choferes registrados'}
+                  <td colSpan="6" className="p-6 text-center text-gray-400">
+                    {searchTerm
+                      ? "No se encontraron resultados"
+                      : "No hay choferes registrados"}
                   </td>
                 </tr>
               ) : (
                 choferesFiltrados.map((chofer) => (
-                  <tr key={chofer.id_chofer} className="border-b border-black hover:bg-gray-100">
-                    <td className="p-3 border-r border-black font-mono">{chofer.id_chofer}</td>
-                    <td className="p-3 border-r border-black">
-                      {`${chofer.nombre} ${chofer.apellido_paterno} ${chofer.apellido_materno}`}
+                  <tr
+                    key={chofer.id_chofer}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition"
+                  >
+                    <td className="p-3 font-mono">{chofer.id_chofer}</td>
+
+                    <td className="p-3">
+                      {chofer.nombre} {chofer.apellido_paterno} {chofer.apellido_materno}
                     </td>
-                    <td className="p-3 border-r border-black">{chofer.telefono || 'N/A'}</td>
-                    <td className="p-3 border-r border-black font-bold text-center">{chofer.licencia}</td>
-                    <td className="p-3 border-r border-black capitalize text-sm">{chofer.estatus}</td>
-                    <td className="p-3 space-x-2">
-                      <button 
+
+                    <td className="p-3">
+                      {chofer.telefono || "N/A"}
+                    </td>
+
+                    <td className="p-3 font-medium text-center">
+                      {chofer.licencia}
+                    </td>
+
+                    <td className="p-3">
+                      <Badge status={chofer.estatus} />
+                    </td>
+
+                    <td className="p-3 flex gap-2">
+                      <Button
+                        variant="secondary"
                         onClick={() => handleEdit(chofer)}
-                        className="px-3 py-1 bg-white border border-black hover:bg-black hover:text-white transition-colors text-xs uppercase font-bold"
                       >
                         Editar
-                      </button>
-                      <button 
+                      </Button>
+
+                      <Button
+                        variant="danger"
                         onClick={() => handleDelete(chofer.id_chofer)}
-                        className="px-3 py-1 bg-gray-200 border border-black hover:bg-gray-400 transition-colors text-xs uppercase font-bold"
-                      >
+                       >
                         Eliminar
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
+
           </table>
         </div>
-      </main>
+      </Card>
+    </main>
 
-      {/* SECCIÓN DERECHA: FORMULARIO CRUD */}
-      <aside className="w-80 border-l border-black p-6 bg-white overflow-y-auto shrink-0">
-        <h2 className="text-xl font-bold mb-6 border-b border-black pb-2 uppercase">
-          {editId ? 'Editar Chofer' : 'Nuevo Chofer'}
+    {/* FORMULARIO */}
+    <aside className="w-[350px]">
+      <Card>
+        <h2 className="text-lg font-semibold mb-4">
+          {editId ? "Editar Chofer" : "Nuevo Chofer"}
         </h2>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
           <div>
-            <label className="block text-xs font-bold mb-1 uppercase">Nombre</label>
-            <input 
-              type="text" 
-              name="nombre" 
-              value={formData.nombre} 
-              onChange={handleChange} 
-              required 
-              className="w-full border border-black p-2 focus:outline-none focus:ring-1 focus:ring-black text-sm"
+            <label className="text-xs text-gray-500">Nombre</label>
+            <Input
+              type="text"
+              name="nombre"
+              value={formData.nombre}
+              onChange={handleChange}
+              required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold mb-1 uppercase">Apellido Paterno</label>
-            <input 
-              type="text" 
-              name="apellido_paterno" 
-              value={formData.apellido_paterno} 
-              onChange={handleChange} 
-              required 
-              className="w-full border border-black p-2 focus:outline-none focus:ring-1 focus:ring-black text-sm"
+            <label className="text-xs text-gray-500">Apellido Paterno</label>
+            <Input
+              type="text"
+              name="apellido_paterno"
+              value={formData.apellido_paterno}
+              onChange={handleChange}
+              required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold mb-1 uppercase">Apellido Materno</label>
-            <input 
-              type="text" 
-              name="apellido_materno" 
-              value={formData.apellido_materno} 
-              onChange={handleChange} 
-              required 
-              className="w-full border border-black p-2 focus:outline-none focus:ring-1 focus:ring-black text-sm"
+            <label className="text-xs text-gray-500">Apellido Materno</label>
+            <Input
+              type="text"
+              name="apellido_materno"
+              value={formData.apellido_materno}
+              onChange={handleChange}
+              required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold mb-1 uppercase">Teléfono</label>
-            <input 
-              type="tel" 
-              name="telefono" 
-              value={formData.telefono} 
-              onChange={handleChange} 
+            <label className="text-xs text-gray-500">Teléfono</label>
+            <Input
+              type="tel"
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleChange}
               maxLength="15"
-              className="w-full border border-black p-2 focus:outline-none focus:ring-1 focus:ring-black text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold mb-1 uppercase">Tipo de Licencia</label>
-            <select 
-              name="licencia" 
-              value={formData.licencia} 
-              onChange={handleChange} 
-              className="w-full border border-black p-2 bg-white focus:outline-none focus:ring-1 focus:ring-black text-sm"
+            <label className="text-xs text-gray-500">Tipo de Licencia</label>
+            <select
+              name="licencia"
+              value={formData.licencia}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
               <option value="B">Tipo B</option>
               <option value="C">Tipo C</option>
@@ -273,12 +300,12 @@ export default function Choferes() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold mb-1 uppercase">Estatus</label>
-            <select 
-              name="estatus" 
-              value={formData.estatus} 
-              onChange={handleChange} 
-              className="w-full border border-black p-2 bg-white focus:outline-none focus:ring-1 focus:ring-black text-sm"
+            <label className="text-xs text-gray-500">Estatus</label>
+            <select
+              name="estatus"
+              value={formData.estatus}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
@@ -286,28 +313,37 @@ export default function Choferes() {
             </select>
           </div>
 
-          <div className="pt-4 flex gap-2">
-            <button 
-              type="submit" 
-              className="flex-1 bg-black text-white font-bold py-2 px-2 text-sm uppercase hover:bg-gray-800 transition-colors border border-black"
-            >
-              {editId ? 'Actualizar' : 'Guardar'}
-            </button>
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" className="flex-1">
+              {editId ? "Actualizar" : "Guardar"}
+            </Button>
+
             {editId && (
-              <button 
-                type="button" 
-                onClick={() => { 
-                  setEditId(null); 
-                  setFormData({ nombre: '', apellido_paterno: '', apellido_materno: '', telefono: '', licencia: 'B', estatus: 'activo' }); 
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setEditId(null);
+                  setFormData({
+                    nombre: "",
+                    apellido_paterno: "",
+                    apellido_materno: "",
+                    telefono: "",
+                    licencia: "B",
+                    estatus: "activo",
+                  });
                 }}
-                className="flex-1 bg-white text-black font-bold py-2 px-2 text-sm uppercase hover:bg-gray-200 transition-colors border border-black"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
           </div>
+
         </form>
-      </aside>
-    </>
-  );
+      </Card>
+    </aside>
+
+  </div>
+);
 }
