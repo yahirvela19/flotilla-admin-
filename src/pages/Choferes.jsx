@@ -148,7 +148,7 @@ return (
 
     {/* TABLA */}
     <main className="flex-1">
-      <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+      <h2 className="text-2xl font-semibold mb-6 text-text-tablas">
         Directorio de Choferes
       </h2>
 
@@ -157,7 +157,7 @@ return (
           <table className="w-full text-sm text-left">
             
             <thead>
-              <tr className="border-b border-gray-200 text-gray-600">
+              <tr className="border-b border-gray-200 text-text-tablas">
                 <th className="p-3">ID</th>
                 <th className="p-3">Nombre Completo</th>
                 <th className="p-3">Teléfono</th>
@@ -186,7 +186,7 @@ return (
                 choferesFiltrados.map((chofer) => (
                   <tr
                     key={chofer.id_chofer}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition"
+                    className="border-b border-gray-100 hover:bg-gray-50 transition text-text-tablas"
                   >
                     <td className="p-3 font-mono">{chofer.id_chofer}</td>
 
@@ -234,14 +234,14 @@ return (
     {/* FORMULARIO */}
     <aside className="w-[350px]">
       <Card>
-        <h2 className="text-lg font-semibold mb-4">
+        <h2 className="text-lg font-semibold mb-4 text-text-tablas">
           {editId ? "Editar Chofer" : "Nuevo Chofer"}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
           <div>
-            <label className="text-xs text-gray-500">Nombre</label>
+            <label className="text-xs text-text-tablas">Nombre</label>
             <Input
               type="text"
               name="nombre"
@@ -252,7 +252,7 @@ return (
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Apellido Paterno</label>
+            <label className="text-xs text-text-tablas">Apellido Paterno</label>
             <Input
               type="text"
               name="apellido_paterno"
@@ -263,7 +263,7 @@ return (
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Apellido Materno</label>
+            <label className="text-xs text-text-tablas">Apellido Materno</label>
             <Input
               type="text"
               name="apellido_materno"
@@ -274,7 +274,7 @@ return (
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Teléfono</label>
+            <label className="text-xs text-text-tablas">Teléfono</label>
             <Input
               type="tel"
               name="telefono"
@@ -285,12 +285,12 @@ return (
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Tipo de Licencia</label>
+            <label className="text-xs text-text-tablas">Tipo de Licencia</label>
             <select
               name="licencia"
               value={formData.licencia}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-accent rounded-lg px-3 py-2 text-sm text-text-tablas"
             >
               <option value="B">Tipo B</option>
               <option value="C">Tipo C</option>
@@ -300,12 +300,12 @@ return (
           </div>
 
           <div>
-            <label className="text-xs text-gray-500">Estatus</label>
+            <label className="text-xs text-text-tablas">Estatus</label>
             <select
               name="estatus"
               value={formData.estatus}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-accent rounded-lg px-3 py-2 text-sm text-text-tablas"
             >
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
@@ -313,32 +313,40 @@ return (
             </select>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" className="flex-1">
-              {editId ? "Actualizar" : "Guardar"}
-            </Button>
+          <div className="flex gap-2 pt-2 text-text-tablas">
+  {/* BOTÓN GUARDAR / ACTUALIZAR */}
+  <Button 
+    type="submit" 
+    className={`flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border transition-all ${
+      editId 
+        ? "bg-azul/10 text-azul border-azul/20 hover:bg-azul/20" 
+        : "bg-verde/10 text-verde border-verde/20 hover:bg-verde/20"
+    }`}
+  >
+    {editId ? "Actualizar" : "Guardar"}
+  </Button>
 
-            {editId && (
-              <Button
-                type="button"
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  setEditId(null);
-                  setFormData({
-                    nombre: "",
-                    apellido_paterno: "",
-                    apellido_materno: "",
-                    telefono: "",
-                    licencia: "B",
-                    estatus: "activo",
-                  });
-                }}
-              >
-                Cancelar
-              </Button>
-            )}
-          </div>
+  {/* BOTÓN CANCELAR (Solo aparece al editar) */}
+  {editId && (
+    <Button
+      type="button"
+      className="flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rojo/10 text-rojo border border-rojo/20 hover:bg-rojo/20 transition-all"
+      onClick={() => {
+        setEditId(null);
+        setFormData({
+          nombre: "",
+          apellido_paterno: "",
+          apellido_materno: "",
+          telefono: "",
+          licencia: "B",
+          estatus: "activo",
+        });
+      }}
+    >
+      Cancelar
+    </Button>
+  )}
+</div>
 
         </form>
       </Card>

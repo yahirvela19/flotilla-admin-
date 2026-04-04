@@ -1,13 +1,13 @@
 export default function Button({ children, variant = "primary", ...props }) {
   const styles = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
-  secondary: "bg-gray-100 hover:bg-gray-200 text-gray-800",
-  danger: "text-red-600 hover:underline",
+    primary: "bg-primary text-white hover:bg-primary-hover shadow-md",
+    secondary: "bg-surface text-text-main border border-accent hover:bg-accent",
+    danger: "text-red-400 hover:bg-red-400/10 px-3",
   };
 
   return (
     <button
-      className={`px-3 py-1 text-sm rounded-lg font-medium ${styles[variant]}`}
+      className={`px-5 py-2 text-[10px] rounded-lg font-black uppercase tracking-widest transition-all ${styles[variant]}`}
       {...props}
     >
       {children}
