@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- COLORES DE FONDO (CAPAS) --- */
+  --color-surface: #EBEBEB ;      /* Fondo principal (Gris oscuro) */
+  --color-secondary: #26272d ;    /* Tarjetas y Sidebar (Gris medio) */
+  --color-accent: #EBEBEB;       /* Header y bordes sutiles */
+  --color-cards: #FFFFFF;        /* Fondo de tarjetas (Blanco puro) */
+
+  /* --- COLORES DE ACCIÓN (NARANJAS) --- */
+  --color-primary: 	#FD7C41;      /* Color principal de botones y logos */
+  --color-primary-hover: #ec8800; /* Color al pasar el mouse */
+  --color-primary-soft: #ffa424;  /* Un naranja más claro para detalles */
+
+  /* --- COLORES DE FUENTE --- */
+  --color-text-navbar: #f5f5f5;    /* Texto principal (Blanco hueso) */
+  --color-text-tablas: #000000;     /* Texto en tablas (Gris oscuro) */
+  --color-text-muted: #a3a3a3;   /* Texto secundario (Gris ceniza) */
+  --color-verde: #28a745;        /* Verde para estados positivos */
+  --color-rojo: #dc3545;         /* Rojo para estados negativos */
+  --color-amarillo: #ffc107 ;      /* Amarillo para advertencias */
+  --color-azul: #4056FF ;          
+
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-text-navbar antialiased;
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
