@@ -18,11 +18,11 @@ export default function Vehiculos() {
     anio: '',
     color: '',
     numero_serie: '',
-    estatus: 'disponible'
+    estatus: 'disponible' // Por defecto
   });
   const [editId, setEditId] = useState(null);
 
-  // 1. LEER (READ)
+  // 1. CARGAR DATOS
   const fetchVehiculos = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -31,7 +31,7 @@ export default function Vehiculos() {
       .order('id_vehiculo', { ascending: true });
 
     if (error) {
-      console.error('Error obteniendo vehículos:', error);
+      console.error('Error:', error);
     } else {
       setVehiculos(data);
     }
@@ -46,22 +46,41 @@ export default function Vehiculos() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 2. CREAR Y ACTUALIZAR (CREATE & UPDATE)
+  // 2. GUARDAR / ACTUALIZAR CON CANDADOS DE SEGURIDAD
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // --- REGLA DE SEGURIDAD: Bloqueo de cambio si está en servicio ---
+    if (editId) {
+      const vehiculoOriginal = vehiculos.find(v => v.id_vehiculo === editId);
+
+      // Si intentan cambiar el estatus y el vehículo está "en_servicio" actualmente
+      if (vehiculoOriginal.estatus === 'en_servicio' && formData.estatus !== 'en_servicio') {
+        const { data: asignaciones } = await supabase
+          .from('asignaciones')
+          .select('id_asignacion')
+          .eq('id_vehiculo', editId)
+          .eq('activa', true);
+
+        if (asignaciones && asignaciones.length > 0) {
+          alert("⚠️ DEBE ELIMINAR LA ASIGNACIÓN DEL CHOFER ANTES DE MODIFICAR EL ESTATUS");
+          return; // Detiene el proceso por completo
+        }
+      }
+    }
+
     const payload = {
-      placa: formData.placa,
+      placa: formData.placa.toUpperCase(),
       marca: formData.marca,
       modelo: formData.modelo,
       anio: parseInt(formData.anio),
       color: formData.color,
       numero_serie: formData.numero_serie || null,
-      estatus: formData.estatus
+      // REGLA: Si es nuevo siempre es 'disponible'. Si es edit, respetamos el form.
+      estatus: editId ? formData.estatus : 'disponible', 
     };
 
     if (editId) {
-      // UPDATE
       const { data, error } = await supabase
         .from('vehiculos')
         .update(payload)
@@ -69,31 +88,30 @@ export default function Vehiculos() {
         .select();
 
       if (error) {
-        console.error('Error actualizando vehículo:', error);
-        alert('Hubo un error al actualizar en la base de datos.');
+        alert('Error al actualizar: ' + error.message);
       } else {
         setVehiculos(vehiculos.map(v => v.id_vehiculo === editId ? data[0] : v));
         setEditId(null);
+        alert('Vehículo actualizado correctamente');
       }
     } else {
-      // CREATE
       const { data, error } = await supabase
         .from('vehiculos')
         .insert([payload])
         .select();
 
       if (error) {
-        console.error('Error creando vehículo:', error);
-        alert('Hubo un error al crear el vehículo en la base de datos.');
+        alert('Error al crear: ' + error.message);
       } else {
         setVehiculos([...vehiculos, data[0]]);
+        alert('Nuevo vehículo registrado como "Disponible"');
       }
     }
 
+    // Resetear formulario
     setFormData({ placa: '', marca: '', modelo: '', anio: '', color: '', numero_serie: '', estatus: 'disponible' });
   };
 
-  // MODO EDICIÓN
   const handleEdit = (vehiculo) => {
     setFormData({
       placa: vehiculo.placa,
@@ -107,242 +125,146 @@ export default function Vehiculos() {
     setEditId(vehiculo.id_vehiculo);
   };
 
-  // 3. ELIMINAR (DELETE)
   const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este vehículo de la base de datos?')) {
+    if (window.confirm('¿Estás seguro de eliminar este vehículo permanentemente?')) {
       const { error } = await supabase
         .from('vehiculos')
         .delete()
         .eq('id_vehiculo', id);
 
       if (error) {
-        console.error('Error eliminando vehículo:', error);
-        alert('No se pudo eliminar el vehículo. Verifica que no tenga asignaciones vinculadas.');
+        alert('No se puede eliminar: tiene historial o asignaciones activas.');
       } else {
         setVehiculos(vehiculos.filter(v => v.id_vehiculo !== id));
       }
     }
   };
 
-  // 4. FILTRADO EN TIEMPO REAL
-  const vehiculosFiltrados = vehiculos.filter(vehiculo => {
+  // FILTRADO
+  const vehiculosFiltrados = vehiculos.filter(v => {
     if (!searchTerm) return true;
-
-    const termino = searchTerm.toLowerCase();
-    return (
-      vehiculo.placa.toLowerCase().includes(termino) ||
-      vehiculo.marca.toLowerCase().includes(termino) ||
-      vehiculo.modelo.toLowerCase().includes(termino) ||
-      (vehiculo.color && vehiculo.color.toLowerCase().includes(termino)) ||
-      vehiculo.estatus.toLowerCase().includes(termino) ||
-      String(vehiculo.anio).includes(termino)
-    );
+    const t = searchTerm.toLowerCase();
+    return v.placa.toLowerCase().includes(t) || v.modelo.toLowerCase().includes(t) || v.marca.toLowerCase().includes(t);
   });
 
   return (
-    <div className="flex gap-6 h-full">
-
-      {/* TABLA */}
+    <div className="flex gap-6 h-full p-4">
+      {/* SECCIÓN DE LA TABLA */}
       <main className="flex-1">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-800">
-          Directorio de Vehículos
-        </h2>
-
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Control de Unidades</h2>
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-
               <thead>
-                <tr className="border-b border-gray-200 text-gray-600">
+                <tr className="border-b border-gray-200 text-gray-600 bg-gray-50">
                   <th className="p-3">ID</th>
                   <th className="p-3">Placa</th>
-                  <th className="p-3">Marca</th>
-                  <th className="p-3">Modelo</th>
+                  <th className="p-3">Marca/Modelo</th>
                   <th className="p-3">Año</th>
-                  <th className="p-3">Color</th>
                   <th className="p-3">Estatus</th>
-                  <th className="p-3">Acciones</th>
+                  <th className="p-3 text-center">Acciones</th>
                 </tr>
               </thead>
-
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan="8" className="p-6 text-center text-gray-500 animate-pulse">
-                      Cargando datos...
+                  <tr><td colSpan="6" className="p-10 text-center animate-pulse">Cargando unidades...</td></tr>
+                ) : vehiculosFiltrados.map((v) => (
+                  <tr key={v.id_vehiculo} className="border-b hover:bg-gray-50 transition">
+                    <td className="p-3 text-gray-400">#{v.id_vehiculo}</td>
+                    <td className="p-3 font-bold">{v.placa}</td>
+                    <td className="p-3">{v.marca} {v.modelo}</td>
+                    <td className="p-3">{v.anio}</td>
+                    <td className="p-3"><Badge status={v.estatus} /></td>
+                    <td className="p-3 flex justify-center gap-2">
+                      <Button variant="secondary" onClick={() => handleEdit(v)}>Editar</Button>
+                      <Button variant="danger" onClick={() => handleDelete(v.id_vehiculo)}>Eliminar</Button>
                     </td>
                   </tr>
-                ) : vehiculosFiltrados.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="p-6 text-center text-gray-400">
-                      {searchTerm
-                        ? "No se encontraron resultados"
-                        : "No hay vehículos registrados"}
-                    </td>
-                  </tr>
-                ) : (
-                  vehiculosFiltrados.map((vehiculo) => (
-                    <tr
-                      key={vehiculo.id_vehiculo}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition"
-                    >
-                      <td className="p-3 font-mono">{vehiculo.id_vehiculo}</td>
-                      <td className="p-3 font-medium">{vehiculo.placa}</td>
-                      <td className="p-3">{vehiculo.marca}</td>
-                      <td className="p-3">{vehiculo.modelo}</td>
-                      <td className="p-3">{vehiculo.anio}</td>
-                      <td className="p-3">{vehiculo.color || 'N/A'}</td>
-                      <td className="p-3">
-                        <Badge status={vehiculo.estatus} />
-                      </td>
-                      <td className="p-3 flex gap-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleEdit(vehiculo)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={() => handleDelete(vehiculo.id_vehiculo)}
-                        >
-                          Eliminar
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
-
             </table>
           </div>
         </Card>
       </main>
 
-      {/* FORMULARIO */}
+      {/* SECCIÓN LATERAL (FORMULARIO) */}
       <aside className="w-[350px]">
         <Card>
-          <h2 className="text-lg font-semibold mb-4">
-            {editId ? "Editar Vehículo" : "Nuevo Vehículo"}
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">
+            {editId ? "Modificar Unidad" : "Alta de Unidad"}
           </h2>
-
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
             <div>
-              <label className="text-xs text-gray-500">Placa</label>
-              <Input
-                type="text"
-                name="placa"
-                value={formData.placa}
-                onChange={handleChange}
-                maxLength="10"
-                required
-              />
+              <label className="text-[10px] uppercase font-bold text-gray-400">Placa</label>
+              <Input name="placa" value={formData.placa} onChange={handleChange} required placeholder="ABC-1234" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-400">Marca</label>
+                <Input name="marca" value={formData.marca} onChange={handleChange} required />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-400">Modelo</label>
+                <Input name="modelo" value={formData.modelo} onChange={handleChange} required />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-400">Año</label>
+                <Input type="number" name="anio" value={formData.anio} onChange={handleChange} required />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-400">Color</label>
+                <Input name="color" value={formData.color} onChange={handleChange} />
+              </div>
             </div>
 
             <div>
-              <label className="text-xs text-gray-500">Marca</label>
-              <Input
-                type="text"
-                name="marca"
-                value={formData.marca}
-                onChange={handleChange}
-                required
-              />
+              <label className="text-[10px] uppercase font-bold text-gray-400">Número de Serie</label>
+              <Input name="numero_serie" value={formData.numero_serie} onChange={handleChange} />
             </div>
 
-            <div>
-              <label className="text-xs text-gray-500">Modelo</label>
-              <Input
-                type="text"
-                name="modelo"
-                value={formData.modelo}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500">Año</label>
-              <Input
-                type="number"
-                name="anio"
-                value={formData.anio}
-                onChange={handleChange}
-                min="1900"
-                max={new Date().getFullYear() + 1}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500">Color</label>
-              <Input
-                type="text"
-                name="color"
-                value={formData.color}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500">Número de Serie</label>
-              <Input
-                type="text"
-                name="numero_serie"
-                value={formData.numero_serie}
-                onChange={handleChange}
-                maxLength="50"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500">Estatus</label>
-              <select
-                name="estatus"
-                value={formData.estatus}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="disponible">Disponible</option>
-                <option value="en_servicio">En servicio</option>
-                <option value="mantenimiento">Mantenimiento</option>
-                <option value="baja">Baja</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" className="flex-1">
-                {editId ? "Actualizar" : "Guardar"}
-              </Button>
-
-              {editId && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => {
-                    setEditId(null);
-                    setFormData({
-                      placa: '',
-                      marca: '',
-                      modelo: '',
-                      anio: '',
-                      color: '',
-                      numero_serie: '',
-                      estatus: 'disponible'
-                    });
-                  }}
+            {/* SELECT DE ESTATUS (Solo en Edición) */}
+            {editId && (
+              <div>
+                <label className="text-[10px] uppercase font-bold text-gray-400">Estado de Operación</label>
+                <select
+                  name="estatus"
+                  value={formData.estatus}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-accent outline-none"
                 >
-                  Cancelar
+                  <option value="disponible">✅ Disponible</option>
+                  <option value="mantenimiento">🛠️ Mantenimiento</option>
+                  <option value="baja">🚫 Baja Definitiva</option>
+                  {formData.estatus === 'en_servicio' && (
+                    <option value="en_servicio" disabled>🚚 En Servicio (Ocupado)</option>
+                  )}
+                </select>
+                <p className="text-[9px] text-gray-400 mt-1 italic">
+                  * No se puede cambiar el estatus si tiene un chofer asignado.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 pt-4">
+              <Button type="submit" className="w-full py-3">
+                {editId ? "Guardar Cambios" : "Registrar Unidad"}
+              </Button>
+              {editId && (
+                <Button variant="secondary" type="button" onClick={() => {
+                  setEditId(null);
+                  setFormData({ placa: '', marca: '', modelo: '', anio: '', color: '', numero_serie: '', estatus: 'disponible' });
+                }}>
+                  Cancelar Edición
                 </Button>
               )}
             </div>
-
           </form>
         </Card>
       </aside>
-
     </div>
   );
 }
