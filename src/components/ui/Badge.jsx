@@ -9,7 +9,13 @@ export default function Badge({ status }) {
     suspendido: "bg-rojo/10 text-rojo border border-rojo/20",
     "en_servicio": "bg-azul/10 text-azul border border-azul/20", 
     mantenimiento: "bg-amarillo/10 text-amarillo border border-amarillo/20",
-    baja: "bg-rojo/10 text-rojo border border-rojo/20"
+    baja: "bg-rojo/10 text-rojo border border-rojo/20",
+    pendiente:    "bg-amarillo/10 text-amarillo border border-amarillo/20",
+    pagado:       "bg-verde/10 text-verde border border-verde/20",
+
+    // Método de pago
+    efectivo:     "bg-azul/10 text-azul border border-azul/20",
+    deposito:     "bg-morado/10 text-morado border border-morado/20",
   };
 
   return (

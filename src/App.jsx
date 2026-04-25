@@ -6,6 +6,7 @@ import Vehiculos from './pages/Vehiculos';
 import Asignaciones from './pages/Asignaciones';
 import Pagos from './pages/Pagos';
 import Login from './pages/Login';
+import ViewPagos from './pages/ViewPagos';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="vehiculos" element={<Vehiculos />} />
       <Route path="asignaciones" element={<Asignaciones />} />
       <Route path="pagos" element={<Pagos />} />
+      <Route path="view-pagos" element={<ViewPagos />} />
     </Route>
   </Route>
 </Routes>

@@ -45,7 +45,6 @@ export default function Choferes() {
     
     // --- LÓGICA DE LIBERACIÓN MASIVA (INACTIVO O SUSPENDIDO) ---
     if (editId && (formData.estatus === 'inactivo' || formData.estatus === 'suspendido')) {
-      // Buscamos TODAS las asignaciones activas de este chofer
       const { data: asignacionesActivas } = await supabase
         .from('asignaciones')
         .select('id_asignacion, id_vehiculo')
@@ -53,15 +52,12 @@ export default function Choferes() {
         .eq('activa', true);
 
       if (asignacionesActivas && asignacionesActivas.length > 0) {
-        // Recorremos cada asignación para liberar los vehículos uno por uno
         for (const asig of asignacionesActivas) {
-          // 1. Finalizar asignación
           await supabase
             .from('asignaciones')
             .update({ activa: false, fecha_fin: new Date().toISOString().split('T')[0] })
             .eq('id_asignacion', asig.id_asignacion);
 
-          // 2. Liberar vehículo vinculado
           await supabase
             .from('vehiculos')
             .update({ estatus: 'disponible' })
@@ -74,8 +70,8 @@ export default function Choferes() {
     const payload = {
       nombre: formData.nombre,
       apellido_paterno: formData.apellido_paterno,
-      apellido_materno: formData.apellido_materno,
-      telefono: formData.telefono,
+      apellido_materno: formData.apellido_materno || null, // ✅ Fix #2: guardar null si está vacío
+      telefono: formData.telefono || null,
       licencia: formData.licencia,
       estatus: formData.estatus
     };
@@ -86,20 +82,20 @@ export default function Choferes() {
       await supabase.from('choferes').insert([payload]);
     }
 
-    // Reset y Refrescar
     setEditId(null);
     setFormData({ nombre: '', apellido_paterno: '', apellido_materno: '', telefono: '', licencia: 'B', estatus: 'activo' });
     fetchChoferes();
   };
 
+  // ✅ Fix #3: sanitizar nulls al cargar datos en el form
   const handleEdit = (chofer) => {
     setFormData({
-      nombre: chofer.nombre,
-      apellido_paterno: chofer.apellido_paterno,
-      apellido_materno: chofer.apellido_materno,
-      telefono: chofer.telefono || '',
-      licencia: chofer.licencia,
-      estatus: chofer.estatus
+      nombre: chofer.nombre ?? '',
+      apellido_paterno: chofer.apellido_paterno ?? '',
+      apellido_materno: chofer.apellido_materno ?? '',
+      telefono: chofer.telefono ?? '',
+      licencia: chofer.licencia ?? 'B',
+      estatus: chofer.estatus ?? 'activo'
     });
     setEditId(chofer.id_chofer);
   };
@@ -107,7 +103,6 @@ export default function Choferes() {
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro? Se eliminará el chofer y SE LIBERARÁN TODAS sus unidades asignadas.')) {
       
-      // BUSCAR TODAS LAS ASIGNACIONES ANTES DE BORRAR
       const { data: asignacionesActivas } = await supabase
         .from('asignaciones')
         .select('id_asignacion, id_vehiculo')
@@ -129,7 +124,7 @@ export default function Choferes() {
 
   const choferesFiltrados = choferes.filter(chofer => {
     if (!searchTerm) return true;
-    const nombreCompleto = `${chofer.nombre} ${chofer.apellido_paterno} ${chofer.apellido_materno}`.toLowerCase();
+    const nombreCompleto = `${chofer.nombre} ${chofer.apellido_paterno} ${chofer.apellido_materno ?? ''}`.toLowerCase();
     return nombreCompleto.includes(searchTerm.toLowerCase());
   });
 
@@ -157,7 +152,7 @@ export default function Choferes() {
                   choferesFiltrados.map((chofer) => (
                     <tr key={chofer.id_chofer} className="border-b border-gray-100 hover:bg-gray-50 transition text-text-tablas">
                       <td className="p-3 font-mono">{chofer.id_chofer}</td>
-                      <td className="p-3 font-medium">{chofer.nombre} {chofer.apellido_paterno} {chofer.apellido_materno}</td>
+                      <td className="p-3 font-medium">{chofer.nombre} {chofer.apellido_paterno} {chofer.apellido_materno ?? ''}</td>
                       <td className="p-3">{chofer.telefono || "N/A"}</td>
                       <td className="p-3 text-center font-medium">{chofer.licencia}</td>
                       <td className="p-3"><Badge status={chofer.estatus} /></td>
@@ -179,7 +174,9 @@ export default function Choferes() {
           <h2 className="text-lg font-semibold mb-4 text-text-tablas">
             {editId ? "Editar Chofer" : "Nuevo Chofer"}
           </h2>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+          {/* ✅ Fix #1: key dinámico para forzar re-render al cambiar entre crear/editar */}
+          <form key={editId ?? "nuevo"} onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="text-xs text-text-tablas">Nombre</label>
               <Input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required />
@@ -189,8 +186,9 @@ export default function Choferes() {
               <Input type="text" name="apellido_paterno" value={formData.apellido_paterno} onChange={handleChange} required />
             </div>
             <div>
+              {/* ✅ Fix #2: apellido_materno sin required, es opcional */}
               <label className="text-xs text-text-tablas">Apellido Materno</label>
-              <Input type="text" name="apellido_materno" value={formData.apellido_materno} onChange={handleChange} required />
+              <Input type="text" name="apellido_materno" value={formData.apellido_materno} onChange={handleChange} />
             </div>
             <div>
               <label className="text-xs text-text-tablas">Teléfono</label>
@@ -228,7 +226,10 @@ export default function Choferes() {
                 <Button 
                   type="button" 
                   className="flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rojo/10 text-rojo border border-rojo/20 hover:bg-rojo/20 transition-all" 
-                  onClick={() => { setEditId(null); setFormData({ nombre: '', apellido_paterno: '', apellido_materno: '', telefono: '', licencia: 'B', estatus: 'activo' }); }}
+                  onClick={() => {
+                    setEditId(null);
+                    setFormData({ nombre: '', apellido_paterno: '', apellido_materno: '', telefono: '', licencia: 'B', estatus: 'activo' });
+                  }}
                 >
                   Cancelar
                 </Button>

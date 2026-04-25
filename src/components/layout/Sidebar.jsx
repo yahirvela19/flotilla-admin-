@@ -39,6 +39,7 @@ export default function Sidebar() {
           <NavItem to="/app/vehiculos" icon={<Car size={18} />} label="Vehículos" />
           <NavItem to="/app/asignaciones" icon={<ClipboardList size={18} />} label="Asignaciones" />
           <NavItem to="/app/pagos" icon={<DollarSign size={18} />} label="Pagos" />
+          <NavItem to="/app/view-pagos" icon={<DollarSign size={18} />} label="Pagos Pendientes" />
         </nav>
       </div>
 

@@ -11,6 +11,7 @@ export default function Vehiculos() {
 
   const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [formKey, setFormKey] = useState(0); // ✅ Fix #2: key para forzar re-render
   const [formData, setFormData] = useState({
     placa: '',
     marca: '',
@@ -41,6 +42,12 @@ export default function Vehiculos() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const resetForm = () => {
+    setEditId(null);
+    setFormData({ placa: '', marca: '', modelo: '', anio: '', color: '', numero_serie: '', estatus: 'disponible' });
+    setFormKey(prev => prev + 1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -55,7 +62,7 @@ export default function Vehiculos() {
           .eq('activa', true);
 
         if (asignaciones && asignaciones.length > 0) {
-          alert("DEBE ELIMINAR LA ASIGNACIÓN DEL CHOFER ANTES DE MODIFICAR EL ESTATUS");
+          alert("⚠️ DEBE ELIMINAR LA ASIGNACIÓN DEL CHOFER ANTES DE MODIFICAR EL ESTATUS.");
           return;
         }
       }
@@ -68,56 +75,73 @@ export default function Vehiculos() {
       anio: parseInt(formData.anio),
       color: formData.color,
       numero_serie: formData.numero_serie || null,
-      estatus: editId ? formData.estatus : 'disponible', 
+      estatus: editId ? formData.estatus : 'disponible',
     };
 
     if (editId) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('vehiculos')
         .update(payload)
-        .eq('id_vehiculo', editId)
-        .select();
+        .eq('id_vehiculo', editId);
 
-      if (!error) {
-        setVehiculos(vehiculos.map(v => v.id_vehiculo === editId ? data[0] : v));
-        setEditId(null);
+      if (error) {
+        alert("Error al actualizar: " + error.message);
+        return;
       }
     } else {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('vehiculos')
-        .insert([payload])
-        .select();
+        .insert([payload]);
 
-      if (!error) setVehiculos([...vehiculos, data[0]]);
+      if (error) {
+        alert("Error al registrar: " + error.message);
+        return;
+      }
     }
 
-    setFormData({ placa: '', marca: '', modelo: '', anio: '', color: '', numero_serie: '', estatus: 'disponible' });
+    // ✅ Fix #3: siempre refrescar desde la BD para garantizar sincronía
+    resetForm();
+    fetchVehiculos();
   };
 
   const handleEdit = (vehiculo) => {
     setFormData({
-      placa: vehiculo.placa,
-      marca: vehiculo.marca,
-      modelo: vehiculo.modelo,
-      anio: vehiculo.anio,
-      color: vehiculo.color || '',
-      numero_serie: vehiculo.numero_serie || '',
-      estatus: vehiculo.estatus
+      placa: vehiculo.placa ?? '',
+      marca: vehiculo.marca ?? '',
+      modelo: vehiculo.modelo ?? '',
+      anio: vehiculo.anio ?? '',
+      color: vehiculo.color ?? '',
+      numero_serie: vehiculo.numero_serie ?? '',
+      estatus: vehiculo.estatus ?? 'disponible'
     });
     setEditId(vehiculo.id_vehiculo);
+    setFormKey(prev => prev + 1); // ✅ Fix #2: forzar re-render del form
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este vehículo de la base de datos?')) {
+    if (window.confirm('¿Estás seguro de eliminar este vehículo?')) {
+
+      // ✅ Fix advertencia: liberar asignaciones activas antes de borrar
+      const { data: asignacionesActivas } = await supabase
+        .from('asignaciones')
+        .select('id_asignacion')
+        .eq('id_vehiculo', id)
+        .eq('activa', true);
+
+      if (asignacionesActivas && asignacionesActivas.length > 0) {
+        alert("⚠️ No se puede eliminar: el vehículo tiene una asignación activa. Finaliza la asignación primero.");
+        return;
+      }
+
       const { error } = await supabase
         .from('vehiculos')
         .delete()
         .eq('id_vehiculo', id);
 
       if (error) {
-        alert('No se pudo eliminar el vehículo. Verifica que no tenga asignaciones vinculadas.');
+        alert('No se pudo eliminar el vehículo: ' + error.message);
       } else {
-        setVehiculos(vehiculos.filter(v => v.id_vehiculo !== id));
+        fetchVehiculos();
       }
     }
   };
@@ -126,9 +150,9 @@ export default function Vehiculos() {
     if (!searchTerm) return true;
     const termino = searchTerm.toLowerCase();
     return (
-      vehiculo.placa.toLowerCase().includes(termino) ||
-      vehiculo.marca.toLowerCase().includes(termino) ||
-      vehiculo.modelo.toLowerCase().includes(termino) ||
+      vehiculo.placa?.toLowerCase().includes(termino) ||
+      vehiculo.marca?.toLowerCase().includes(termino) ||
+      vehiculo.modelo?.toLowerCase().includes(termino) ||
       String(vehiculo.anio).includes(termino)
     );
   });
@@ -177,16 +201,13 @@ export default function Vehiculos() {
                       <td className="p-3">{vehiculo.modelo}</td>
                       <td className="p-3">{vehiculo.anio}</td>
                       <td className="p-3">{vehiculo.color || 'N/A'}</td>
-                      <td className="p-3">
-                        <Badge status={vehiculo.estatus} />
-                      </td>
-                      <td className="p-3 flex gap-2 justify-center">
-                        <Button variant="secondary" onClick={() => handleEdit(vehiculo)}>
-                          Editar
-                        </Button>
-                        <Button variant="danger" onClick={() => handleDelete(vehiculo.id_vehiculo)}>
-                          Eliminar
-                        </Button>
+                      <td className="p-3"><Badge status={vehiculo.estatus} /></td>
+                      {/* ✅ Fix #1: <div> adentro del <td> para centrar botones */}
+                      <td className="p-3 text-center">
+                        <div className="flex gap-2 justify-center">
+                          <Button variant="secondary" onClick={() => handleEdit(vehiculo)}>Editar</Button>
+                          <Button variant="danger" onClick={() => handleDelete(vehiculo.id_vehiculo)}>Eliminar</Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -203,7 +224,8 @@ export default function Vehiculos() {
             {editId ? "Editar Vehículo" : "Nuevo Vehículo"}
           </h2>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* ✅ Fix #2: key numérico incremental */}
+          <form key={formKey} onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="text-xs text-text-tablas">Placa</label>
               <Input type="text" name="placa" value={formData.placa} onChange={handleChange} required />
@@ -254,9 +276,13 @@ export default function Vehiculos() {
             )}
 
             <div className="flex gap-2 pt-2 text-text-tablas">
-              <Button 
-                type="submit" 
-                className="flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border transition-all bg-verde/10 text-verde border-verde/20 hover:bg-verde/20"
+              <Button
+                type="submit"
+                className={`flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border transition-all ${
+                  editId
+                    ? "bg-azul/10 text-azul border-azul/20 hover:bg-azul/20"
+                    : "bg-verde/10 text-verde border-verde/20 hover:bg-verde/20"
+                }`}
               >
                 {editId ? "Actualizar" : "Guardar"}
               </Button>
@@ -264,19 +290,8 @@ export default function Vehiculos() {
               {editId && (
                 <Button
                   type="button"
-                  className="flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border transition-all bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
-                  onClick={() => {
-                    setEditId(null);
-                    setFormData({ 
-                      placa: '', 
-                      marca: '', 
-                      modelo: '', 
-                      anio: '', 
-                      color: '', 
-                      numero_serie: '', 
-                      estatus: 'disponible' 
-                    });
-                  }}
+                  className="flex-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border transition-all bg-rojo/10 text-rojo border-rojo/20 hover:bg-rojo/20"
+                  onClick={resetForm}
                 >
                   Cancelar
                 </Button>
