@@ -19,7 +19,8 @@
   --color-verde: #28a745;        /* Verde para estados positivos */
   --color-rojo: #dc3545;         /* Rojo para estados negativos */
   --color-amarillo: #ffc107 ;      /* Amarillo para advertencias */
-  --color-azul: #4056FF ;          
+  --color-azul: #4056FF ;  
+  --color-morado: #a93aed;        
 
 }
 
