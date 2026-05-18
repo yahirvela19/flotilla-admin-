@@ -9,9 +9,12 @@ import Login from './pages/Login';
 import ViewPagos from './pages/ViewPagos';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
-export default function App() {
+import { ToastProvider } from "./components/ui/Toast";
+
+function App() {
   return (
-    <BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
       <Routes>
   <Route path="/" element={<Login />} />
 
@@ -28,5 +31,8 @@ export default function App() {
   </Route>
 </Routes>
     </BrowserRouter>
+    </ToastProvider>
   );
 }
+
+export default App;
