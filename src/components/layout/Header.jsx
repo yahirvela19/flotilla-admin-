@@ -3,22 +3,29 @@ import { supabase } from "../../lib/supabase";
 import bannerImage from "../../assets/header.jpg";
 
 export default function Header({ searchTerm, setSearchTerm }) {
+
   // ✅ Fix #10: leer el nombre real del usuario autenticado
   const [userName, setUserName] = useState("Usuario");
 
   useEffect(() => {
     const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (user) {
         // Intentamos leer el nombre del metadata, si no usamos el email
-        const name = user.user_metadata?.nombre
-          || user.user_metadata?.name
-          || user.user_metadata?.full_name
-          || user.email?.split("@")[0]
-          || "Usuario";
+        const name =
+          user.user_metadata?.nombre ||
+          user.user_metadata?.name ||
+          user.user_metadata?.full_name ||
+          user.email?.split("@")[0] ||
+          "Usuario";
+
         setUserName(name);
       }
     };
+
     loadUser();
   }, []);
 
@@ -32,6 +39,7 @@ export default function Header({ searchTerm, setSearchTerm }) {
           alt="Banner"
           className="w-full h-full object-cover brightness-100 opacity-100"
         />
+
         <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10"></div>
       </div>
 
@@ -40,8 +48,9 @@ export default function Header({ searchTerm, setSearchTerm }) {
         <span className="text-[20px] font-black text-text-main uppercase tracking-tight drop-shadow-lg">
           ¡Hola!
         </span>
+
         <h2 className="text-[25px] font-black text-primary uppercase tracking-[0.4em] mt-1 drop-shadow-md">
-          {userName}
+          Juan
         </h2>
       </div>
 
@@ -54,9 +63,21 @@ export default function Header({ searchTerm, setSearchTerm }) {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-[500px] bg-surface/80 backdrop-blur-md border border-accent rounded-full px-8 py-3 text-sm text-text-tablas outline-none transition-all placeholder:text-text-tablas/50 focus:border-primary focus:bg-surface shadow-2xl"
         />
+
         <div className="absolute right-6 top-3.5 text-text-tablas/50 group-focus-within:text-primary transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
           </svg>
         </div>
       </div>
