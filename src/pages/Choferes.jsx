@@ -37,15 +37,34 @@ export default function Choferes() {
   }, []);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === 'telefono') {
+      const soloNumeros = value.replace(/\D/g, '');
+      setFormData({ ...formData, [name]: soloNumeros });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // --- LÓGICA DE LIBERACIÓN MASIVA (INACTIVO O SUSPENDIDO) ---
+    if (
+      !formData.nombre.trim() || 
+      !formData.apellido_paterno.trim() || 
+      !formData.telefono.trim()
+    ) {
+      alert("Por favor, completa los campos obligatorios (Nombre, Apellido Paterno y Teléfono).");
+      return;
+    }
+
+    if (formData.telefono.trim().length < 10) {
+      alert("El número de teléfono debe tener al menos 10 dígitos.");
+      return; 
+    }
+
     if (editId && (formData.estatus === 'inactivo' || formData.estatus === 'suspendido')) {
-      // Buscamos TODAS las asignaciones activas de este chofer
       const { data: asignacionesActivas } = await supabase
         .from('asignaciones')
         .select('id_asignacion, id_vehiculo')
@@ -53,15 +72,12 @@ export default function Choferes() {
         .eq('activa', true);
 
       if (asignacionesActivas && asignacionesActivas.length > 0) {
-        // Recorremos cada asignación para liberar los vehículos uno por uno
         for (const asig of asignacionesActivas) {
-          // 1. Finalizar asignación
           await supabase
             .from('asignaciones')
             .update({ activa: false, fecha_fin: new Date().toISOString().split('T')[0] })
             .eq('id_asignacion', asig.id_asignacion);
 
-          // 2. Liberar vehículo vinculado
           await supabase
             .from('vehiculos')
             .update({ estatus: 'disponible' })
@@ -70,12 +86,11 @@ export default function Choferes() {
       }
     }
 
-    // --- GUARDAR O ACTUALIZAR CHOFER ---
     const payload = {
-      nombre: formData.nombre,
-      apellido_paterno: formData.apellido_paterno,
-      apellido_materno: formData.apellido_materno,
-      telefono: formData.telefono,
+      nombre: formData.nombre.trim(),
+      apellido_paterno: formData.apellido_paterno.trim(),
+      apellido_materno: formData.apellido_materno ? formData.apellido_materno.trim() : '',
+      telefono: formData.telefono.trim(), 
       licencia: formData.licencia,
       estatus: formData.estatus
     };
@@ -86,7 +101,6 @@ export default function Choferes() {
       await supabase.from('choferes').insert([payload]);
     }
 
-    // Reset y Refrescar
     setEditId(null);
     setFormData({ nombre: '', apellido_paterno: '', apellido_materno: '', telefono: '', licencia: 'B', estatus: 'activo' });
     fetchChoferes();
@@ -96,7 +110,7 @@ export default function Choferes() {
     setFormData({
       nombre: chofer.nombre,
       apellido_paterno: chofer.apellido_paterno,
-      apellido_materno: chofer.apellido_materno,
+      apellido_materno: chofer.apellido_materno || '',
       telefono: chofer.telefono || '',
       licencia: chofer.licencia,
       estatus: chofer.estatus
@@ -107,7 +121,6 @@ export default function Choferes() {
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro? Se eliminará el chofer y SE LIBERARÁN TODAS sus unidades asignadas.')) {
       
-      // BUSCAR TODAS LAS ASIGNACIONES ANTES DE BORRAR
       const { data: asignacionesActivas } = await supabase
         .from('asignaciones')
         .select('id_asignacion, id_vehiculo')
@@ -157,7 +170,9 @@ export default function Choferes() {
                   choferesFiltrados.map((chofer) => (
                     <tr key={chofer.id_chofer} className="border-b border-gray-100 hover:bg-gray-50 transition text-text-tablas">
                       <td className="p-3 font-mono">{chofer.id_chofer}</td>
-                      <td className="p-3 font-medium">{chofer.nombre} {chofer.apellido_paterno} {chofer.apellido_materno}</td>
+                      <td className="p-3 font-medium">
+                        {chofer.nombre} {chofer.apellido_paterno} {chofer.apellido_materno || ""}
+                      </td>
                       <td className="p-3">{chofer.telefono || "N/A"}</td>
                       <td className="p-3 text-center font-medium">{chofer.licencia}</td>
                       <td className="p-3"><Badge status={chofer.estatus} /></td>
@@ -189,12 +204,13 @@ export default function Choferes() {
               <Input type="text" name="apellido_paterno" value={formData.apellido_paterno} onChange={handleChange} required />
             </div>
             <div>
-              <label className="text-xs text-text-tablas">Apellido Materno</label>
-              <Input type="text" name="apellido_materno" value={formData.apellido_materno} onChange={handleChange} required />
+              <label className="text-xs text-text-tablas">Apellido Materno (Opcional)</label>
+              <Input type="text" name="apellido_materno" value={formData.apellido_materno} onChange={handleChange} />
             </div>
             <div>
               <label className="text-xs text-text-tablas">Teléfono</label>
-              <Input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} maxLength="15" />
+              {/* Mantenemos el maxLength en 15 por si en el futuro quieren meter código de área (+52), pero la validación base exige mínimo 10 */}
+              <Input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} maxLength="15" required />
             </div>
             <div>
               <label className="text-xs text-text-tablas">Tipo de Licencia</label>
