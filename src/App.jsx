@@ -7,30 +7,29 @@ import Asignaciones from './pages/Asignaciones';
 import Pagos from './pages/Pagos';
 import Login from './pages/Login';
 import ViewPagos from './pages/ViewPagos';
+import Rentabilidad from './pages/Rentabilidad';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-
 import { ToastProvider } from "./components/ui/Toast";
 
 function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
-      <Routes>
-  <Route path="/" element={<Login />} />
-
-  {/* Envolvemos todas las rutas protegidas */}
-  <Route element={<ProtectedRoute />}>
-    <Route path="/app" element={<Layout />}>
-      <Route index element={<Navigate to="choferes" replace />} />
-      <Route path="choferes" element={<Choferes />} />
-      <Route path="vehiculos" element={<Vehiculos />} />
-      <Route path="asignaciones" element={<Asignaciones />} />
-      <Route path="pagos" element={<Pagos />} />
-      <Route path="view-pagos" element={<ViewPagos />} />
-    </Route>
-  </Route>
-</Routes>
-    </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/app" element={<Layout />}>
+              <Route index element={<Navigate to="choferes" replace />} />
+              <Route path="choferes" element={<Choferes />} />
+              <Route path="vehiculos" element={<Vehiculos />} />
+              <Route path="asignaciones" element={<Asignaciones />} />
+              <Route path="pagos" element={<Pagos />} />
+              <Route path="view-pagos" element={<ViewPagos />} />
+              <Route path="rentabilidad" element={<Rentabilidad />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </ToastProvider>
   );
 }

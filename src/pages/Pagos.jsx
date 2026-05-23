@@ -7,6 +7,10 @@ import Input from "../components/ui/Input";
 import Badge from "../components/ui/Badge";
 import { useToast } from "../components/ui/Toast";
 
+// ✅ Formato moneda con decimales
+const formatMXN = (val) =>
+  `$${parseFloat(val).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export default function Pagos() {
   const { searchTerm } = useOutletContext();
   const { toast, confirm } = useToast();
@@ -14,7 +18,7 @@ export default function Pagos() {
   const [pagos, setPagos] = useState([]);
   const [choferes, setChoferes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false); // ✅ bloquea doble clic
+  const [submitting, setSubmitting] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [formData, setFormData] = useState({
     id_chofer: "", monto: "", fecha_pago: new Date().toISOString().split('T')[0],
@@ -36,7 +40,6 @@ export default function Pagos() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // ✅ Monto: solo números y punto decimal, no negativos
     if (name === 'monto') {
       if (value !== '' && !/^\d*\.?\d{0,2}$/.test(value)) return;
     }
@@ -54,12 +57,10 @@ export default function Pagos() {
     e.preventDefault();
     if (submitting) return;
 
-    // ✅ Validar monto > 0
     const montoNum = parseFloat(formData.monto);
     if (isNaN(montoNum) || montoNum <= 0) {
       toast({ message: 'El monto debe ser un número mayor a cero.', type: 'warning' }); return;
     }
-    // ✅ Validar monto no absurdamente grande
     if (montoNum > 9999999) {
       toast({ message: 'El monto ingresado parece incorrecto. Verifica el valor.', type: 'warning' }); return;
     }
@@ -78,7 +79,7 @@ export default function Pagos() {
       : choferEncontrado ? `${choferEncontrado.nombre} ${choferEncontrado.apellido_paterno}` : 'el chofer';
 
     const accion = editId ? 'actualizar' : 'registrar';
-    const ok = await confirm(`¿Deseas ${accion} el pago de $${montoNum.toLocaleString()} para ${choferNombre}?`);
+    const ok = await confirm(`¿Deseas ${accion} el pago de ${formatMXN(montoNum)} para ${choferNombre}?`);
     if (!ok) return;
 
     setSubmitting(true);
@@ -121,7 +122,7 @@ export default function Pagos() {
   };
 
   const handleDelete = async (id, monto, choferNombre) => {
-    const ok = await confirm(`¿Eliminar el pago de $${parseFloat(monto).toLocaleString()} de ${choferNombre}?`);
+    const ok = await confirm(`¿Eliminar el pago de ${formatMXN(monto)} de ${choferNombre}?`);
     if (!ok) return;
     const { error } = await supabase.from("pagos").delete().eq("id_pago", id);
     if (error) toast({ message: 'Error al eliminar: ' + error.message, type: 'error' });
@@ -162,7 +163,8 @@ export default function Pagos() {
                   <tr key={pago.id_pago} className="border-b border-gray-100 hover:bg-gray-50 transition text-text-tablas">
                     <td className="p-3 font-mono">{pago.id_pago}</td>
                     <td className="p-3">{pago.choferes ? `${pago.choferes.nombre} ${pago.choferes.apellido_paterno}` : `Chofer #${pago.id_chofer}`}</td>
-                    <td className="p-3 font-bold text-verde">${parseFloat(pago.monto).toLocaleString()}</td>
+                    {/* ✅ Monto con decimales y signo $ */}
+                    <td className="p-3 font-bold text-verde">{formatMXN(pago.monto)}</td>
                     <td className="p-3">{pago.fecha_pago}</td>
                     <td className="p-3"><Badge status={pago.metodo_pago} /></td>
                     <td className="p-3"><Badge status={pago.estatus} /></td>
@@ -179,6 +181,7 @@ export default function Pagos() {
           </div>
         </Card>
       </main>
+
       <aside className="w-[350px]">
         <Card>
           <h2 className="text-lg font-semibold mb-4 text-text-tablas">{editId ? "Editar Pago" : "Nuevo Pago"}</h2>
@@ -198,8 +201,11 @@ export default function Pagos() {
             </div>
             <div>
               <label className="text-xs text-text-tablas">Monto</label>
-              {/* ✅ type="text" con inputMode decimal para evitar negativos con flechas */}
-              <Input name="monto" type="text" inputMode="decimal" value={formData.monto} onChange={handleChange} placeholder="0.00" required />
+              {/* ✅ Signo $ visible en el input */}
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted font-bold">$</span>
+                <Input name="monto" type="text" inputMode="decimal" value={formData.monto} onChange={handleChange} placeholder="0.00" required className="pl-7" />
+              </div>
             </div>
             <div><label className="text-xs text-text-tablas">Fecha de Pago</label><Input name="fecha_pago" type="date" value={formData.fecha_pago} onChange={handleChange} required /></div>
             <div className="grid grid-cols-2 gap-2">

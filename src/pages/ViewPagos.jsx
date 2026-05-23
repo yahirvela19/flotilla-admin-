@@ -49,7 +49,7 @@ export default function ViewPagos() {
       <header className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold text-text-tablas">Pagos Pendientes</h2>
         <div className="text-sm font-black text-rojo bg-rojo/10 px-4 py-2 rounded-full border border-rojo/20 uppercase">
-          Total: ${total.toLocaleString()}
+          Total: ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       </header>
       <Card>
@@ -75,7 +75,7 @@ export default function ViewPagos() {
                   <tr key={pago.id_pago} className="border-b border-gray-100 hover:bg-gray-50 transition text-text-tablas">
                     <td className="p-4 font-mono text-gray-400">{pago.id_pago}</td>
                     <td className="p-4 font-medium">{choferNombre}</td>
-                    <td className="p-4 text-rojo font-bold">${parseFloat(pago.monto).toLocaleString()}</td>
+                    <td className="p-4 text-rojo font-bold"> ${parseFloat(pago.monto).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td className="p-4">{pago.fecha_pago}</td>
                     <td className="p-4 text-center">
                       <Button
