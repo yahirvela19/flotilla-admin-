@@ -26,7 +26,10 @@
 
 @layer base {
   body {
-    @apply bg-surface text-text-navbar antialiased;
+    background-color: var(--color-surface);
+    color: var(--color-text-navbar);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     margin: 0;
     font-family: 'Inter', system-ui, sans-serif;
   }
