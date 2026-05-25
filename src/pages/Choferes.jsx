@@ -56,7 +56,6 @@ export default function Choferes() {
     e.preventDefault();
     if (submitting) return;
 
-    // ── Limpiar valores ────────────────────────────────────────────────
     const nombreClean   = sanitizarNombre(limpiarLetras(formData.nombre)).trim();
     const apellidoClean = sanitizarNombre(limpiarLetras(formData.apellido_paterno)).trim();
     const maternoClean  = sanitizarNombre(limpiarLetras(formData.apellido_materno)).trim();
@@ -73,60 +72,71 @@ export default function Choferes() {
       return;
     }
 
-    // ── Verificar duplicados (antes de mostrar el confirm) ─────────────
-    // ✅ Bug fix: las queries de duplicado se ejecutan SIN setSubmitting(true)
-    //    para no bloquear el UI antes de tiempo
+    // ── Verificar duplicados ───────────────────────────────────────────
     try {
-      // Duplicado por nombre + apellido paterno
+      // ✅ Fix: la query trae todos los que tienen mismo nombre + apellido paterno
+      //    y luego verificamos el materno en JS para hacer la comparación correcta
       let qNombre = supabase
-        .from('choferes').select('id_chofer, nombre, apellido_paterno')
+        .from('choferes')
+        .select('id_chofer, nombre, apellido_paterno, apellido_materno')
         .ilike('nombre', nombreClean)
         .ilike('apellido_paterno', apellidoClean);
 
-      // Duplicado por teléfono
       let qTel = supabase
-        .from('choferes').select('id_chofer, nombre, apellido_paterno')
+        .from('choferes')
+        .select('id_chofer, nombre, apellido_paterno')
         .eq('telefono', telefonoClean);
 
-      // Al editar excluimos el propio registro
       if (editId) {
         qNombre = qNombre.neq('id_chofer', editId);
         qTel    = qTel.neq('id_chofer', editId);
       }
 
-      const [{ data: dupNombre }, { data: dupTel }] = await Promise.all([qNombre, qTel]);
+      const [{ data: candidatos }, { data: dupTel }] = await Promise.all([qNombre, qTel]);
 
-      if (dupNombre && dupNombre.length > 0) {
+      // ✅ De los candidatos con mismo nombre+paterno, filtramos los que
+      //    también tienen el MISMO materno (comparación case-insensitive)
+      //    Si el materno está vacío en ambos también es duplicado
+      const dupNombre = (candidatos ?? []).filter(c => {
+        const maternoExistente = (c.apellido_materno ?? '').trim().toLowerCase();
+        const maternoNuevo     = maternoClean.toLowerCase();
+        return maternoExistente === maternoNuevo;
+      });
+
+      if (dupNombre.length > 0) {
+        const d = dupNombre[0];
+        const nombreCompleto = [d.nombre, d.apellido_paterno, d.apellido_materno].filter(Boolean).join(' ');
         toast({
-          message: `Ya existe un chofer con el nombre "${nombreClean} ${apellidoClean}" (ID: ${dupNombre[0].id_chofer}).`,
+          message: `Ya existe un chofer con el nombre "${nombreCompleto}" (ID: ${d.id_chofer}).`,
           type: 'warning'
         });
         return;
       }
 
       if (dupTel && dupTel.length > 0) {
+        const d = dupTel[0];
         toast({
-          message: `El teléfono ${telefonoClean} ya está registrado para ${dupTel[0].nombre} ${dupTel[0].apellido_paterno} (ID: ${dupTel[0].id_chofer}).`,
+          message: `El teléfono ${telefonoClean} ya está registrado para ${d.nombre} ${d.apellido_paterno} (ID: ${d.id_chofer}).`,
           type: 'warning'
         });
         return;
       }
+
     } catch {
       toast({ message: 'Error al validar los datos. Intenta de nuevo.', type: 'error' });
       return;
     }
 
-    // ── Pedir confirmación al usuario ──────────────────────────────────
-    // ✅ Bug fix: el confirm va ANTES de setSubmitting(true)
-    //    así el botón NO se bloquea mientras el modal está abierto
+    // ── Confirmar acción ───────────────────────────────────────────────
     const accion = editId ? 'actualizar' : 'guardar';
-    const ok = await confirm(`¿Seguro que deseas ${accion} la información de ${nombreClean} ${apellidoClean}?`);
-    if (!ok) return; // usuario canceló → el botón sigue habilitado, sin problema
+    const nombreMostrar = [nombreClean, apellidoClean, maternoClean].filter(Boolean).join(' ');
+    const ok = await confirm(`¿Seguro que deseas ${accion} la información de ${nombreMostrar}?`);
+    if (!ok) return;
 
-    // ── A partir de aquí sí bloqueamos el botón ────────────────────────
+    // ── Guardar ────────────────────────────────────────────────────────
     setSubmitting(true);
     try {
-      // Si se marca inactivo/suspendido, liberar asignaciones activas
+      // Liberar asignaciones si se marca inactivo/suspendido
       if (editId && (formData.estatus === 'inactivo' || formData.estatus === 'suspendido')) {
         const { data: activas } = await supabase
           .from('asignaciones').select('id_asignacion, id_vehiculo')
@@ -169,7 +179,6 @@ export default function Choferes() {
     } catch (err) {
       toast({ message: 'Ocurrió un error inesperado: ' + err.message, type: 'error' });
     } finally {
-      // ✅ finally garantiza que el botón siempre se desbloquea
       setSubmitting(false);
     }
   };
